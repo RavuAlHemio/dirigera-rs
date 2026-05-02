@@ -4,7 +4,14 @@
 //! TLS verification. You also need a bearer token which is obtain via OAuth 2. Configuration for
 //! TLS and tool to get a token is both available under the [`danger`](crate::danger) module and the
 //! `config` feature flag respectively.
-use hyper::service::Service;
+use http_body_util::{BodyExt, Full};
+use hyper::body::{Bytes, Incoming};
+use hyper_rustls::HttpsConnector;
+use hyper_util::client::legacy::Client;
+use hyper_util::client::legacy::connect::HttpConnector;
+#[cfg(feature = "config")]
+use hyper_util::rt::TokioExecutor;
+#[cfg(feature = "config")]
 use serde::Deserialize;
 
 use std::collections::HashMap;
@@ -18,7 +25,7 @@ const DIRIGERA_API_VERSION: &str = "v1";
 /// it.
 #[derive(Debug)]
 pub struct Hub {
-    client: hyper::Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>,
+    client: Client<HttpsConnector<HttpConnector>, Full<Bytes>>,
     ip_address: std::net::Ipv4Addr,
     token: String,
 }
@@ -55,7 +62,7 @@ impl Default for Hub {
             .enable_http1()
             .build();
 
-        let client = hyper::Client::builder().build::<_, hyper::Body>(https);
+        let client = Client::builder(TokioExecutor::new()).build(https);
 
         Self::new(client, config.ip_address, config.token)
     }
@@ -65,7 +72,7 @@ impl Hub {
     /// Create a new instance of the [`Hub`]. You need to construct your own [`hyper]` client and
     /// use it together with the IP address and bearer token for the [`Hub`].
     pub fn new(
-        client: hyper::Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>,
+        client: Client<HttpsConnector<HttpConnector>, Full<Bytes>>,
         ip_address: std::net::Ipv4Addr,
         token: String,
     ) -> Self {
@@ -80,8 +87,8 @@ impl Hub {
         &self,
         method: http::Method,
         path: &str,
-        body: Option<hyper::Body>,
-    ) -> anyhow::Result<http::Request<hyper::Body>> {
+        body: Option<Full<Bytes>>,
+    ) -> anyhow::Result<http::Request<Full<Bytes>>> {
         let uri: hyper::Uri = format!(
             "https://{}:{}/{}{}",
             self.ip_address, DIRIGERA_PORT, DIRIGERA_API_VERSION, path,
@@ -97,18 +104,18 @@ impl Hub {
 
         let req = match body {
             Some(body) => request.body(body),
-            None => request.body(hyper::Body::empty()),
+            None => request.body(Full::default()),
         };
 
         req.map_err(|err| anyhow::anyhow!(err))
     }
 
-    async fn deserialize_response<T>(response: http::Response<hyper::Body>) -> anyhow::Result<T>
+    async fn deserialize_response<T>(response: http::Response<Incoming>) -> anyhow::Result<T>
     where
         T: serde::de::DeserializeOwned,
     {
         let (_, body) = response.into_parts();
-        let body = hyper::body::to_bytes(body).await?;
+        let body = body.collect().await?.to_bytes();
 
         serde_json::from_slice(body.as_ref()).map_err(|err| anyhow::anyhow!(err))
     }
@@ -118,7 +125,7 @@ impl Hub {
     pub async fn devices(&mut self) -> anyhow::Result<Vec<crate::Device>> {
         Self::deserialize_response(
             self.client
-                .call(self.create_request(http::Method::GET, "/devices", None)?)
+                .request(self.create_request(http::Method::GET, "/devices", None)?)
                 .await?,
         )
         .await
@@ -128,7 +135,7 @@ impl Hub {
     pub async fn device(&mut self, id: &str) -> anyhow::Result<crate::Device> {
         Self::deserialize_response(
             self.client
-                .call(self.create_request(
+                .request(self.create_request(
                     http::Method::GET,
                     format!("/devices/{}", id).as_str(),
                     None,
@@ -164,10 +171,10 @@ impl Hub {
         let body: String = serde_json::to_string(&vec![body])?;
 
         self.client
-            .call(self.create_request(
+            .request(self.create_request(
                 http::Method::PATCH,
                 format!("/devices/{}", inner.id).as_str(),
-                Some(hyper::Body::from(body)),
+                Some(Full::new(Bytes::from(body))),
             )?)
             .await?;
 
@@ -206,10 +213,10 @@ impl Hub {
         let body: String = serde_json::to_string(&vec![body])?;
 
         self.client
-            .call(self.create_request(
+            .request(self.create_request(
                 http::Method::PATCH,
                 format!("/devices/{}", inner.id).as_str(),
-                Some(hyper::Body::from(body)),
+                Some(Full::new(Bytes::from(body))),
             )?)
             .await?;
 
@@ -250,10 +257,10 @@ impl Hub {
         let body: String = serde_json::to_string(&vec![body])?;
 
         self.client
-            .call(self.create_request(
+            .request(self.create_request(
                 http::Method::PATCH,
                 format!("/devices/{}", inner.id).as_str(),
-                Some(hyper::Body::from(body)),
+                Some(Full::new(Bytes::from(body))),
             )?)
             .await?;
 
@@ -304,10 +311,10 @@ impl Hub {
         let body: String = serde_json::to_string(&vec![body])?;
 
         self.client
-            .call(self.create_request(
+            .request(self.create_request(
                 http::Method::PATCH,
                 format!("/devices/{}", inner.id).as_str(),
-                Some(hyper::Body::from(body)),
+                Some(Full::new(Bytes::from(body))),
             )?)
             .await?;
 
@@ -359,10 +366,10 @@ impl Hub {
         let body: String = serde_json::to_string(&vec![body])?;
 
         self.client
-            .call(self.create_request(
+            .request(self.create_request(
                 http::Method::PATCH,
                 format!("/devices/{}", inner.id).as_str(),
-                Some(hyper::Body::from(body)),
+                Some(Full::new(Bytes::from(body))),
             )?)
             .await?;
 
@@ -391,10 +398,10 @@ impl Hub {
         let body: String = serde_json::to_string(&vec![body])?;
 
         self.client
-            .call(self.create_request(
+            .request(self.create_request(
                 http::Method::PATCH,
                 format!("/devices/{}", inner.id).as_str(),
-                Some(hyper::Body::from(body)),
+                Some(Full::new(Bytes::from(body))),
             )?)
             .await?;
 
@@ -435,10 +442,10 @@ impl Hub {
         let body: String = serde_json::to_string(&vec![body])?;
 
         self.client
-            .call(self.create_request(
+            .request(self.create_request(
                 http::Method::PATCH,
                 format!("/devices/{}", inner.id).as_str(),
-                Some(hyper::Body::from(body)),
+                Some(Full::new(Bytes::from(body))),
             )?)
             .await?;
 
@@ -452,7 +459,7 @@ impl Hub {
     pub async fn scenes(&mut self) -> anyhow::Result<Vec<crate::Scene>> {
         Self::deserialize_response(
             self.client
-                .call(self.create_request(http::Method::GET, "/scenes", None)?)
+                .request(self.create_request(http::Method::GET, "/scenes", None)?)
                 .await?,
         )
         .await
@@ -462,7 +469,7 @@ impl Hub {
     pub async fn scene(&mut self, id: &str) -> anyhow::Result<crate::Scene> {
         Self::deserialize_response(
             self.client
-                .call(self.create_request(
+                .request(self.create_request(
                     http::Method::GET,
                     format!("/scenes/{}", id).as_str(),
                     None,
@@ -477,10 +484,10 @@ impl Hub {
         let inner = scene.inner();
 
         self.client
-            .call(self.create_request(
+            .request(self.create_request(
                 http::Method::POST,
                 format!("/scenes/{}/trigger", inner.id).as_str(),
-                Some(hyper::Body::empty()),
+                Some(Full::default()),
             )?)
             .await?;
 
@@ -492,10 +499,10 @@ impl Hub {
         let inner = scene.inner();
 
         self.client
-            .call(self.create_request(
+            .request(self.create_request(
                 http::Method::POST,
                 format!("/scenes/{}/undo", inner.id).as_str(),
-                Some(hyper::Body::empty()),
+                Some(Full::default()),
             )?)
             .await?;
 
