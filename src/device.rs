@@ -82,6 +82,8 @@ pub enum DeviceType {
     Outlet,
     Blinds,
     BlindsController,
+    ElectricalSensor,
+    EnvironmentSensor,
 }
 
 impl std::fmt::Display for DeviceType {
@@ -94,6 +96,8 @@ impl std::fmt::Display for DeviceType {
             Self::Outlet => f.pad("Outlet"),
             Self::Blinds => f.pad("BlindsController"),
             Self::BlindsController => f.pad("BlindsController"),
+            Self::ElectricalSensor => f.pad("ElectricalSensor"),
+            Self::EnvironmentSensor => f.pad("EnvironmentSensor"),
         }
     }
 }
