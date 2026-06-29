@@ -59,6 +59,7 @@ pub enum Capability {
     Coordinates,
     CountryCode,
     CustomName,
+    EnergyConsumedAtLastReset,
     IsOn,
     LightLevel,
     LogLevel,
@@ -66,6 +67,7 @@ pub enum Capability {
     Time,
     Timezone,
     UserConsents,
+    WindowOpen,
 }
 
 /// A [`Device`] has both a `type` which is interpreted as the [`Device`] enum but also a
