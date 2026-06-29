@@ -177,11 +177,11 @@ pub struct Attributes {
     pub blinds_state: Option<String>,
 
     // Environment sensor
-    pub current_temperature: Option<u8>,
+    pub current_temperature: Option<f64>,
     pub current_r_h: Option<u8>,
-    pub current_p_m25: Option<u8>,
-    pub max_measured_p_m25: Option<u8>,
-    pub min_measured_p_m25: Option<u8>,
+    pub current_p_m25: Option<u16>,
+    pub max_measured_p_m25: Option<u16>,
+    pub min_measured_p_m25: Option<u16>,
     pub voc_index: Option<u8>,
 
     // Open and close sensor
