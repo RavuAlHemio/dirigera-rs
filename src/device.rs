@@ -1,6 +1,6 @@
 //! IKEA support multiple devices to be controlled via the Dirigera hub and they're divided into
 //! several types, in this code represented as the [Device] enum.
-use crate::deserialize_datetime;
+use crate::{deserialize_datetime, deserialize_datetime_optional};
 use serde::{Deserialize, Serialize};
 
 /// A [`Device`] is a resource that is able to connect to the IKEA Dirigera hub - or the actual hub
@@ -183,9 +183,23 @@ pub struct Attributes {
     pub max_measured_p_m25: Option<u16>,
     pub min_measured_p_m25: Option<u16>,
     pub voc_index: Option<u8>,
+    pub current_c_o2: Option<u16>,
+    pub max_measured_c_o2: Option<u16>,
+    pub min_measured_c_o2: Option<u16>,
 
     // Open and close sensor
     pub is_open: Option<bool>,
+
+    // Electrical sensor
+    pub current_active_power: Option<f64>,
+    pub current_amps: Option<f64>,
+    pub current_voltage: Option<f64>,
+    pub total_energy_consumed: Option<f64>,
+    #[serde(default, deserialize_with = "deserialize_datetime_optional")]
+    pub total_energy_consumed_last_updated: Option<chrono::DateTime<chrono::Utc>>,
+    pub energy_consumed_at_last_reset: Option<f64>,
+    #[serde(default, deserialize_with = "deserialize_datetime_optional")]
+    pub time_of_last_energy_reset: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 impl Device {
